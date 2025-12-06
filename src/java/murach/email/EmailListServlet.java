@@ -35,14 +35,23 @@ public class EmailListServlet extends HttpServlet {
             String lastName = request.getParameter("lastName");
             String email = request.getParameter("email");
 
-            // Tạo User object và insert vào DB
-            User user = new User(firstName, lastName, email);
-            UserDB.insert(user);
+            // Kiểm tra email đã tồn tại chưa
+            if (UserDB.emailExists(email)) {
+                request.setAttribute("errorMessage", "Email already exists. Please use a different email.");
+                request.setAttribute("firstName", firstName);
+                request.setAttribute("lastName", lastName);
+                request.setAttribute("email", email);
+                url = "/index.jsp";
+            } else {
+                // Tạo User object và insert vào DB
+                User user = new User(firstName, lastName, email);
+                UserDB.insert(user);
 
-            // Quay lại trang danh sách
-            List<User> users = UserDB.selectAllUsers();
-            request.setAttribute("users", users);
-            url = "/useradmin.jsp";
+                // Quay lại trang danh sách
+                List<User> users = UserDB.selectAllUsers();
+                request.setAttribute("users", users);
+                url = "/useradmin.jsp";
+            }
         }
         else if (action.equals("update")) {
             // Lấy tham số từ form
@@ -50,16 +59,27 @@ public class EmailListServlet extends HttpServlet {
             String firstName = request.getParameter("firstName");
             String lastName = request.getParameter("lastName");
             String email = request.getParameter("email");
+            Long userId = Long.parseLong(userIdStr);
 
-            // Tạo User object và update
-            User user = new User(firstName, lastName, email);
-            user.setUserId(Long.parseLong(userIdStr));
-            UserDB.update(user);
+            // Kiểm tra email đã tồn tại chưa (trừ chính user đang update)
+            User existingUser = UserDB.selectUser(email);
+            if (existingUser != null && !existingUser.getUserId().equals(userId)) {
+                request.setAttribute("errorMessage", "Email already exists. Please use a different email.");
+                User user = new User(firstName, lastName, email);
+                user.setUserId(userId);
+                request.setAttribute("user", user);
+                url = "/index.jsp";
+            } else {
+                // Tạo User object và update
+                User user = new User(firstName, lastName, email);
+                user.setUserId(userId);
+                UserDB.update(user);
 
-            // Quay lại trang danh sách
-            List<User> users = UserDB.selectAllUsers();
-            request.setAttribute("users", users);
-            url = "/useradmin.jsp";
+                // Quay lại trang danh sách
+                List<User> users = UserDB.selectAllUsers();
+                request.setAttribute("users", users);
+                url = "/useradmin.jsp";
+            }
         }
         else if (action.equals("delete")) {
             // Lấy email để xóa
